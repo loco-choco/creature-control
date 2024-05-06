@@ -3,36 +3,36 @@ using System.Collections.Generic;
 
 namespace CreatureControl;
 
-public class WeightedGraph<T,U> 
-  where T : IEquatable<T>
-  where U : IComparable<U>
+public class WeightedGraph<Node,Edge> 
+  where Node : IEquatable<Node>
+  where Edge : IComparable<Edge>
 {
-  private Dictionary<T, List<GraphEdge<T, U>> > graph;
+  private Dictionary<Node, List<GraphEdge<Node, Edge>> > graph;
   
   public WeightedGraph()
   {
-    graph = new Dictionary<T, List<GraphEdge<T, U>> >();
+    graph = new Dictionary<Node, List<GraphEdge<Node, Edge>> >();
   }
   
-  public bool TryAddNode(T node){
+  public bool TryAddNode(Node node){
     if(graph.ContainsKey(node)) return false;
 
-    graph.Add(node, new List<GraphEdge<T, U>>());
+    graph.Add(node, new List<GraphEdge<Node, Edge>>());
     return true;
   }
 
-  public bool TryAddEdge(T node_a, T node_b, U weight){
+  public bool TryAddEdge(Node node_a, Node node_b, Edge weight){
     if(!graph.TryGetValue(node_a, out var edges_node_a)) return false;
     if(!graph.TryGetValue(node_b, out var edges_node_b)) return false;
     if(edges_node_a.Exists((edge)=>edge.NodeA.Equals(node_b) || edge.NodeB.Equals(node_b))) return false;
     
-    var edge = new GraphEdge<T,U>(node_a, node_b, weight);
+    var edge = new GraphEdge<Node,Edge>(node_a, node_b, weight);
     graph[node_a].Add(edge);
     graph[node_b].Add(edge);
     return true;
   }
 
-  public bool TryGetEdge(T node_a, T node_b, out GraphEdge<T,U> edge){
+  public bool TryGetEdge(Node node_a, Node node_b, out GraphEdge<Node,Edge> edge){
     edge = null;
     if(graph.ContainsKey(node_a)) return false;
     
@@ -41,19 +41,19 @@ public class WeightedGraph<T,U>
     return true;
   }
 
-  public bool TryGetEdgeList(T node, out List<GraphEdge<T,U>> edges) => graph.TryGetValue(node, out edges);
-  public List<T> GetNodeList() => new List<T>(graph.Keys);
+  public bool TryGetEdgeList(Node node, out List<GraphEdge<Node,Edge>> edges) => graph.TryGetValue(node, out edges);
+  public List<Node> GetNodeList() => new List<Node>(graph.Keys);
 }
 
-public class GraphEdge<T,U> 
-  where T : IEquatable<T>
-  where U : IComparable<U>
+public class GraphEdge<Node,Edge> 
+  where Node : IEquatable<Node>
+  where Edge : IComparable<Edge>
 {
-  public T NodeA;
-  public T NodeB;
-  public U Weight;
+  public Node NodeA;
+  public Node NodeB;
+  public Edge Weight;
 
-  public GraphEdge(T node_a, T node_b, U edge_weight)
+  public GraphEdge(Node node_a, Node node_b, Edge edge_weight)
   {
     NodeA = node_a;
     NodeB = node_b;
