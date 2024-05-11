@@ -13,15 +13,14 @@ public class Vector3AStar : MonoBehaviour, PathGenerator<Vector3,float>
     Dictionary<Vector3, Vector3> came_from = new(nodes.Count);
     Queue<(Vector3 node, float distance)> priority_queue = new Queue<(Vector3 node, float distance)>();
     
-
     Dictionary<Vector3, float> known_distances = new(nodes.Count);
-    for(int i = 0; i < known_distances.Count; i++){
+    for(int i = 0; i < nodes.Count; i++){
       if(nodes[i] == initial_node) known_distances[initial_node] = 0f;
       else known_distances[nodes[i]] = float.MaxValue;
     }
 
     Dictionary<Vector3, float> guessed_distances = new(nodes.Count);
-    for(int i = 0; i < guessed_distances.Count; i++){
+    for(int i = 0; i < nodes.Count; i++){
       if(nodes[i] == initial_node) guessed_distances[initial_node] = (target_node - initial_node).sqrMagnitude;
       else guessed_distances[nodes[i]] = float.MaxValue;
     }
@@ -45,7 +44,7 @@ public class Vector3AStar : MonoBehaviour, PathGenerator<Vector3,float>
             came_from[neighbour_node] = node;
             known_distances[neighbour_node] = distance_until_now;
             guessed_distances[neighbour_node] = distance_until_now + (target_node - initial_node).sqrMagnitude;
-            if(!graph.IsVisited(node)){
+            if(!graph.IsVisited(neighbour_node)){ //This might be making some issues where it doesnt get the optimal path, see https://en.wikipedia.org/wiki/A*_search_algorithm
               priority_queue.Enqueue((neighbour_node, distance_until_now));
               priority_queue.OrderBy((element)=>element.distance);
             }
@@ -57,12 +56,13 @@ public class Vector3AStar : MonoBehaviour, PathGenerator<Vector3,float>
   }
 
   private List<Vector3> CreatePath(Vector3 initial_node, Vector3 target_node, Dictionary<Vector3, Vector3> came_from){
-    List<Vector3> path = new();
+    List<Vector3> path = new List<Vector3>();
     Vector3 node = target_node;
-    do{
+    while(node != initial_node){
       path.Insert(0,node);
       node = came_from[node];
-    }while(node != initial_node);
+    }
+    path.Insert(0, initial_node);
     return path;
   }
 }

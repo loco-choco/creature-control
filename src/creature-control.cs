@@ -31,6 +31,15 @@ public class CreatureControl : ModBehaviour
       graph_manipulator.GetComponent<GraphManipulatorItem>().ModConsole = ModHelper.Console;
       graph_manipulator.transform.parent = Locator.GetAstroObject(AstroObject.Name.TimberHearth).transform;
       graph_manipulator.transform.position = FindObjectOfType<PlayerBody>().transform.position;
+
+      var path_gen_manipulator = GameObject.CreatePrimitive(PrimitiveType.Cube);
+      path_gen_manipulator.layer = 21; //OWLayerMask.interactMask;
+      path_gen_manipulator.AddComponent<Vector3AStar>();
+      path_gen_manipulator.AddComponent<PathGeneratorManipulatorItem>().GizmosAPI = GizmosAPI;
+      //path_gen_manipulator.GetComponent<PathGeneratorManipulatorItem>().ModConsole = ModHelper.Console;
+      PathGeneratorManipulatorItem.ModConsole = ModHelper.Console;
+      path_gen_manipulator.transform.parent = Locator.GetAstroObject(AstroObject.Name.TimberHearth).transform;
+      path_gen_manipulator.transform.position = FindObjectOfType<PlayerBody>().transform.position;
 		};
 	}
 }

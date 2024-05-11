@@ -1,19 +1,20 @@
+using System.Collections.Generic;
 using UnityEngine;
 using OWML.Common;
 
 namespace CreatureControl;
 
-public class GraphManipulatorItem : OWItem 
+public class PathGeneratorManipulatorItem : OWItem 
 {
   public IGizmosAPI GizmosAPI;
-  public IModConsole ModConsole;
+  public static IModConsole ModConsole;
 
-  static public WeightedGraph<Vector3, float> graph;
-  static public Transform graph_transform;
+  private PathGenerator<Vector3, float> path_generator;
+  private List<Vector3> path;
 
   bool was_picked_up = false;
 
-  public override string GetDisplayName() => "Graph Manipulator";
+  public override string GetDisplayName() => "Path Generator Manipulator";
 
   public override void PickUpItem(Transform holdTransform){
     was_picked_up = true;
@@ -26,35 +27,27 @@ public class GraphManipulatorItem : OWItem
     was_picked_up = false;
   }
 
+  public void Start(){
+    path_generator = GetComponent<PathGenerator<Vector3, float>>();
+  }
+
   bool was_primary_action = false;
   bool was_secondary_action = false;
   Vector3 selected_node;
   bool selected_a_node = false;
   private void Update(){
+    if(GraphManipulatorItem.graph == null) return;
+
     bool is_using_item = Locator.GetToolModeSwapper().IsInToolMode(ToolMode.Item) && was_picked_up;
     bool is_primary_action = OWInput.IsPressed(InputLibrary.toolActionPrimary, InputMode.Character, 0f) && is_using_item;
     bool is_secondary_action = OWInput.IsPressed(InputLibrary.toolActionSecondary, InputMode.Character, 0f) && is_using_item;
-    
-    //Add Node to graph
+      
     if(is_primary_action && !was_primary_action){
       Transform camera = Locator.GetPlayerCamera().transform;
       if(Physics.Raycast(camera.position, camera.forward, out RaycastHit hit, 1000f, OWLayerMask.physicalMask)){
         Vector3 local_pos_of_hit = hit.transform.InverseTransformPoint(hit.point);
-        
-        if(hit.transform != graph_transform){
-          graph = new();
-          graph_transform = hit.transform;
-        }
-        graph.TryAddNode(local_pos_of_hit);
-        ModConsole.WriteLine($"Added node at {local_pos_of_hit}");
-      }
-    }
-    else if(is_secondary_action && !was_secondary_action){
-      Transform camera = Locator.GetPlayerCamera().transform;
-      if(Physics.Raycast(camera.position, camera.forward, out RaycastHit hit, 1000f, OWLayerMask.physicalMask)){
-        Vector3 local_pos_of_hit = hit.transform.InverseTransformPoint(hit.point);
-
-        var nodes = graph.GetNodeList();
+  
+        var nodes = GraphManipulatorItem.graph.GetNodeList();
         Vector3 closest_node = Vector3.zero;
         float node_dist = float.MaxValue;
         foreach(var node in nodes){
@@ -71,8 +64,10 @@ public class GraphManipulatorItem : OWItem
         }
         else{
           selected_a_node = false;
-          graph.TryAddEdge(selected_node, closest_node, (selected_node - closest_node).sqrMagnitude);
-          ModConsole.WriteLine($"Created edge at {selected_node}-{closest_node}");
+          ModConsole.WriteLine($"Calculating Path from {selected_node}->{closest_node}");
+          path = path_generator.CalculatePath(GraphManipulatorItem.graph, selected_node, closest_node);
+          if(path != null) ModConsole.WriteLine($"Path calculated! {path.Count} steps");
+          else ModConsole.WriteLine($"Path not found");
         }
       }
     }
@@ -82,21 +77,23 @@ public class GraphManipulatorItem : OWItem
   }
 
   private void OnRenderObject(){
-    if(GizmosAPI == null || graph == null || !was_picked_up) return;
+    if(GizmosAPI == null || GraphManipulatorItem.graph == null || !was_picked_up) return;
+    Transform graph_transform = GraphManipulatorItem.graph_transform;
 
     GizmosAPI.SetDefaultMaterialPass();
     GizmosAPI.DrawWithReference(graph_transform,()=>{
-      var nodes = graph.GetNodeList();
+      if(selected_node != null) GizmosAPI.DrawSimpleWireframeSphere(0.4f, selected_node, Color.green, 6);
+      if(path != null) foreach(var node in path) GizmosAPI.DrawSimpleWireframeSphere(0.6f, node, Color.yellow, 6);
+    
+      var nodes = GraphManipulatorItem.graph.GetNodeList();
       foreach(var node in nodes){
         GizmosAPI.DrawSimpleWireframeSphere(0.2f, node, Color.red, 6);
-        if(selected_a_node && selected_node.Equals(node)) GizmosAPI.DrawSimpleWireframeSphere(0.4f, node, Color.magenta, 6); 
-        if(graph.TryGetEdgeList(node, out var edges))
+        if(GraphManipulatorItem.graph.TryGetEdgeList(node, out var edges))
           foreach(var edge in edges){
             GizmosAPI.DrawVector((edge.NodeB - edge.NodeA), 0.1f, edge.NodeA, Color.yellow);
           }
       }
     });
   }
-
 }
   
